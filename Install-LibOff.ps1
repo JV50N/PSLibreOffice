@@ -18,8 +18,7 @@ $ErrorActionPreference = "SilentlyContinue"
 # Script Version
 $ScriptVer = "1.0"
 
-#$x64-System = ""
-#$x86-System = ""
+
 
 # Log File Info
 $LogPath = "$env:SystemDrive\Temp"
@@ -49,6 +48,11 @@ $x64_HelpPackInstaller = "$ScriptPath\7.5.0\LibreOffice_7.5.0_Win_x86-64_helppac
 $x86_Installer = "$ScriptPath\7.5.0\LibreOffice_7.5.0_Win_x86.msi"
 $x86_HelpPackInstaller = "$ScriptPath\7.5.0\LibreOffice_7.5.0_Win_x86_helppack_en-US.msi"
 
+$x64System = ((Get-WmiObject Win32_OperatingSystem | Select OSARCHITECTURE). OSARCHITECTURE -eq "64-bit")
+$x86System = ((Get-WmiObject Win32_OperatingSystem | Select OSARCHITECTURE).OSARCHITECTURE -eq "32-bit")
+
+$Checkpkg = (Get-CimInstance -ClassName Win32_Product -Filter "name LIKE 'OpenOffice%%' OR name LIKE 'LibreOffice%%'")
+
 # Functions
 Function Start-Install {
 	begin{
@@ -58,23 +62,29 @@ Function Start-Install {
 	process{
 		try{
 			# See if previous versions of Libre Office are installed, if so, remove...
-			Get-CimInstance -ClassName Win32_Product -Filter "Name LIKE 'OpenOffice%%' OR Name LIKE 'LibreOffice%%'" | Invoke-CimMethod -MethodName Uninstall
+			if ($Checkpkg){
+				Write-Host "["$TimeStamp"] " " Previous Version of Libre Office/Open Office found..."
+				Invoke-CimMethod -MethodName Uninstall
+				Write-Host "["$TimeStamp"] " " Previous Version of Libre Office/Open Office removed..."
+			} else {
+				Write-Host "["$TimeStamp"] " " Previous Version of Libre Office/Open Office not found!"
+			}
 			
 			# Check System Architecture and then install appropriate packages...
-			if ((Get-WmiObject Win32_OperatingSystem | Select osarchitecture).osarchitecture -eq "64-bit"){
+			if ($x64System){
 				# Install Libre Office x64
 				Write-Host "["$TimeStamp"] "  " Installing Libre Office 7.5.0 for 64 Bit systems..."
-				Start-Process "$SysPath\msiexec.exe" -ArgumentList "i/ `"$x64_Installer`" /quiet /passive /norestart" -Wait
+				Start-Process msiexec.exe -ArgumentList "/i `"$x64_Installer`" /quiet /passive /norestart" -Wait
 				# Install Offline Help Pack x64
 				Write-Host "["$TimeStamp"] " " Installing Libre Office Offline Help Pack for 64 Bit systems..."
-				Start-Process "$SysPath\msiexec.exe" -ArgumentList "i/ `"$x64_HelpPackInstaller`" /quiet /passive /norestart" -Wait
-			} elseif ((Get-WmiObject Win32_OperatingSystem | Select osarchitecture).osarchitecture -eq "32-bit") {
+				Start-Process msiexec.exe -ArgumentList "/i `"$x64_HelpPackInstaller`" /quiet /passive /norestart" -Wait
+			} elseif ($x86System) {
 				# Install Libre Office x86
 				Write-Host "["$TimeStamp"] " " Installing Libre Office 7.5.0 for 32 Bit systems..."
-				Start-Process "$SysPath\msiexec.exe" -ArgumentList "i/ `"$x86_Installer`" /quiet /passive /norestart" -Wait
+				Start-Process msiexec.exe -ArgumentList "/i `"$x86_Installer`" /quiet /passive /norestart" -Wait
 				# Install Offline Help Pack x86
 				Write-Host "["$TimeStamp"] " " Installing Libre Office Offline Help Pack for 32 Bit Systems..."
-				Start-Process "$SysPath\msiexec.exe" -ArgumentList "i/ `"$x86_HelpPackInstaller`" /quiet /passive /norestart" -Wait
+				Start-Process msiexec.exe -ArgumentList "/i `"$x86_HelpPackInstaller`" /quiet /passive /norestart" -Wait
 			} else {
 				Write-Host "["$TimeStamp"] " " This is not a typical windows architecture. Please Contact your System Admin..." - ForegroundColor Red
 			}
