@@ -57,6 +57,10 @@ Function Start-Install {
 	}
 	process{
 		try{
+			# See if previous versions of Libre Office are installed, if so, remove...
+			Get-CimInstance -ClassName Win32_Product -Filter "Name LIKE 'OpenOffice%%' OR Name LIKE 'LibreOffice%%'" | Invoke-CimMethod -MethodName Uninstall
+			
+			# Check System Architecture and then install appropriate packages...
 			if ((Get-WmiObject Win32_OperatingSystem | Select osarchitecture).osarchitecture -eq "64-bit"){
 				# Install Libre Office x64
 				Write-Host "["$TimeStamp"] "  " Installing Libre Office 7.5.0 for 64 Bit systems..."
